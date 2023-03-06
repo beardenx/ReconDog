@@ -14,7 +14,7 @@ toilet -f mono12 -F metal ReconDog
 echo "Author : beardenx"
 echo "Github : https://github.com/beardenx"
 
-echo "------------------------------------"
+echo "...................................."
 echo
 }
 
@@ -42,8 +42,14 @@ fi
 if ! command -v httprobe &> /dev/null
 then
     echo -e "httprobe ${RED}not found.${NC} Installing..."
-    sudo apt update
-    sudo apt install httprobe
+    sudo apt install httprobe -y >/dev/null 2>&1 &
+    pid=$!
+
+    while kill -0 $pid 2>/dev/null; do
+    echo -n "#####" 
+    sleep 1
+    done 
+    echo -e "${GREEN}httprobe Installed${NC}"
 else
     echo -e "httprobe is already ${GREEN}installed.${NC} \u2713"
 fi
@@ -52,10 +58,32 @@ fi
 if ! command -v nmap &> /dev/null
 then
     echo -e "nmap ${RED}not found.${NC} Installing..."
-    sudo apt update
-    sudo apt install nmap
-else
+    sudo apt install nmap -y >/dev/null 2>&1 &
+    pid=$!
+
+    while kill -0 $pid 2>/dev/null; do
+    echo -n "#####" 
+    sleep 1
+    done 
+    echo -e "${GREEN}nmap Installed${NC}"
+else 
     echo -e "nmap is already ${GREEN}installed.${NC} \u2713"
+fi
+
+# Check if dirsearch is installed
+if ! command -v dirsearch &> /dev/null
+then
+    echo -e "nmap ${RED}not found.${NC} Installing..."
+    sudo apt install dirsearch -y >/dev/null 2>&1 &
+    pid=$!
+
+    while kill -0 $pid 2>/dev/null; do
+    echo -n "#####" 
+    sleep 1
+    done 
+    echo -e "${GREEN}dirsearch Installed${NC}"
+else 
+    echo -e "dirsearch is already ${GREEN}installed.${NC} \u2713"
 fi
 
 echo
@@ -71,7 +99,7 @@ echo "2. Directory Listing"
 echo "3. Tool C"
 echo
 
-echo "Your Choice ?:"
+echo -n "Your Choice ?: "
 
 # Read the user's choice
 read tool_choice
@@ -79,15 +107,11 @@ read tool_choice
 # Execute the chosen tool
 case $tool_choice in
     1)
-        echo -e "You chose ${GREEN}Subscan${NC}. Enter a subdomain to scan:"
+        echo -e -n "You chose ${GREEN}Subscan${NC}. Enter a subdomain to scan: "
         read tool_a_param
         # Run Tool A with the chosen parameter
-        echo "Running Tool A with parameter: $tool_a_param"
-
-                figlet -f big "subscan"
-                echo "Author : beardenx"
-
-                echo "Github : https://github.com/beardenx"
+        echo
+        echo "Running SubScan with parameter: $tool_a_param"
 
                 if [ $# -gt 2 ]; then
                     echo "Usage: ./runit.sh <domain>"
@@ -102,9 +126,11 @@ case $tool_choice in
                 echo "Gathering Subdomain with Amass..."
                 amass enum -d $tool_a_param >> subdomains.txt
 
+                echo
                 echo "Probing for alive subdomain..."
                 cat subdomains.txt | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > probe.txt
 
+                echo
                 echo "Scanning for open ports with Nmap..."
                 nmap -iL probe.txt -T5 -oA NmapScan/scanned.txt
         ;;
