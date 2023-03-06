@@ -123,18 +123,31 @@ case $tool_choice in
                     mkdir NmapScan
                 fi
 
+                if [ ! -d "Subdomain" ]; then
+                    mkdir Subdomain
+                fi
+
+                if [ ! -d "Probing" ]; then
+                    mkdir Probing
+                fi
+
                 echo "Gathering Subdomain with Amass..."
-                amass enum -d $tool_a_param >> subdomains.txt
+                amass enum -d $tool_a_param >> Subdomain/subdomains.txt
 
-                echo
+                if [ $# -eq 2 ];then
+                
                 echo "Probing for alive subdomain..."
-                cat subdomains.txt | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > probe.txt
+                cat Subdomain/subdomains.txt | sort -u | grep -v $2 | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > Probing/probe.txt
+            else
+                echo "Probing for alive subdomain..."
+                cat Subdomain/subdomains.txt | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > Probing/probe.txt
 
+            fi
                 echo
                 echo "Scanning for open ports with Nmap..."
-                nmap -iL probe.txt -T5 -oA NmapScan/scanned.txt
+                nmap -iL Probing/probe.txt -T5 -oA NmapScan/scanned.txt
         ;;
-    2)
+        2)
         echo "You chose Tool B. Enter a parameter for Tool B:"
         read tool_b_param
         # Run Tool B with the chosen parameter
