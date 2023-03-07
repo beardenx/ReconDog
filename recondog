@@ -22,6 +22,23 @@ banner
 #Checking Dependencies
 echo "Checking Dependencies..."
 echo
+
+# Check if Amass is toilet figlet
+if ! command -v figlet &> /dev/null
+then
+    echo -e "Figlet ${RED}not found.${NC} Installing..."
+    sudo apt install toilet figlet -y >/dev/null 2>&1 &
+    pid=$!
+
+    while kill -0 $pid 2>/dev/null; do
+    echo -n "#####" 
+    sleep 1
+    done 
+    echo -e "${GREEN}Figlet Installed${NC}"
+else
+    echo -e "Figlet is already ${GREEN}installed.${NC} \u2713" 
+fi
+
 # Check if Amass is installed
 if ! command -v amass &> /dev/null
 then
@@ -95,18 +112,24 @@ banner
 # Prompt the user for input to choose a tool
 echo "Enter a number to choose a tool to run:"
 echo "1. SubScan"
-echo "2. Directory Listing"
-echo "3. Tool C"
+echo "2. Probport"
 echo
 
 echo -n "Your Choice ?: "
 
 # Read the user's choice
-read tool_choice
+read tool_choice dummyvar
+clear
+
+banner
 
 # Execute the chosen tool
 case $tool_choice in
     1)
+        echo -e -n "${RED}Introduction :${NC} ${GREEN}SubScan is a Subdomain Enumeration tool that will scan your domain, listing down the subdomain available and probing 
+the subdomain to check if it is alive or not. Then this tool will running nmap on the alive subdomain"${NC}
+        echo
+        echo
         echo -e -n "You chose ${GREEN}Subscan${NC}. Enter a subdomain to scan: "
         read tool_a_param
         # Run Tool A with the chosen parameter
@@ -119,39 +142,48 @@ case $tool_choice in
                     exit 1
                 fi	
 
-                if [ ! -d "NmapScan" ]; then
-                    mkdir NmapScan
+                if [ ! -d "SubScan" ]; then
+                    mkdir SubScan
                 fi
 
-                if [ ! -d "Subdomain" ]; then
-                    mkdir Subdomain
-                fi
 
-                if [ ! -d "Probing" ]; then
-                    mkdir Probing
-                fi
 
                 echo "Gathering Subdomain with Amass..."
-                amass enum -d $tool_a_param >> Subdomain/subdomains.txt
+                mkdir -p SubScan/Subdomain && amass enum -d $tool_a_param > SubScan/Subdomain/subdomain.txt
 
                 if [ $# -eq 2 ];then
                 
                 echo "Probing for alive subdomain..."
-                cat Subdomain/subdomains.txt | sort -u | grep -v $2 | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > Probing/probe.txt
+                mkdir -p SubScan/Probing && cat SubScan/Subdomain/subdomain.txt | sort -u | grep -v $2 | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > SubScan/Probing/probe.txt
             else
                 echo "Probing for alive subdomain..."
-                cat Subdomain/subdomains.txt | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > Probing/probe.txt
+                mkdir -p SubScan/Probing && cat SubScan/Subdomain/subdomain.txt | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > SubScan/Probing/probe.txt
 
             fi
                 echo
                 echo "Scanning for open ports with Nmap..."
-                nmap -iL Probing/probe.txt -T5 -oA NmapScan/scanned.txt
+                mkdir -p SubScan/NmapScan && nmap -iL SubScan/Probing/probe.txt -T5 -oA SubScan/NmapScan/scanned.txt
         ;;
         2)
-        echo "You chose Tool B. Enter a parameter for Tool B:"
+        
+        if [ ! -d "Probing" ]; then
+            mkdir Probing
+        fi
+        echo -e -n "You chose ${GREEN}ProbPort${NC}. Enter a file location to scan: "
         read tool_b_param
-        # Run Tool B with the chosen parameter
-        echo "Running Tool B with parameter: $tool_b_param"
+
+            if [ $# -eq 2 ];then
+            echo "Probing for alive subdomain..."
+                cat "$tool_b_param" | sort -u | grep -v | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > Probing/probe.txt
+            else
+                echo "Probing for alive subdomain..."
+                cat "$tool_b_param" | sort -u | httprobe -s -p https:443 | sed 's/https\?:\/\///' | tr -d ":443" > Probing/probe.txt
+
+            fi
+                echo
+                echo "Scanning for open ports with Nmap..."
+                mkdir -p Probing/NmapScan && nmap -iL Probing/probe.txt -T5 -oA Probing/NmapScan/scanned.txt
+
         ;;
     3)
         echo "You chose Tool C. Enter a parameter for Tool C:"
